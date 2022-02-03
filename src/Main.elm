@@ -1,12 +1,11 @@
 module Main exposing (Msg(..), main, update, view)
 
 import Browser
+import Data.Menu exposing (Menu, menuDecoder)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (on, onClick, onInput, preventDefaultOn)
+import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode as Decode exposing (Decoder, field, int, maybe, nullable, string)
-import Json.Decode.Pipeline as Decode exposing (required)
 import Platform.Sub
 import String
 
@@ -23,30 +22,13 @@ type alias Model =
     }
 
 
-type alias Menu =
-    { dishes : List Dish
-    }
-
-
-type alias Dish =
-    { title : String
-    , photo_thumb : String
-    , url : String
-    , weight : Int
-    , energy : Int
-    , carbohydrates : Int
-    , proteins : Int
-    , fats : Int
-    , ingredients : List String
-    }
-
-
 type MenuState
     = Fetching
     | Fetched Menu
     | FetchFailed String
 
 
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -66,6 +48,7 @@ init _ =
     )
 
 
+subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.none
 
@@ -82,6 +65,7 @@ type Msg
     | MenuFetched (Result Http.Error Menu)
 
 
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     ( case msg of
         BuildRations ->
@@ -138,6 +122,7 @@ update msg model =
 -- View
 
 
+selectOption : Int -> Int -> Html Msg
 selectOption currentValue num =
     let
         strVal =
@@ -153,6 +138,7 @@ selectOption currentValue num =
     option (List.concat [ [ value strVal ], selectedAttributes ]) [ text strVal ]
 
 
+view : Model -> Html Msg
 view model =
     main_ [] <|
         case .menu model of
@@ -192,28 +178,5 @@ view model =
                     ]
                 ]
 
-            FetchFailed error ->
+            FetchFailed _ ->
                 []
-
-
-
--- Decoding
-
-
-menuDecoder : Decoder Menu
-menuDecoder =
-    Decode.map Menu (Decode.list dishDecoder)
-
-
-dishDecoder : Decoder Dish
-dishDecoder =
-    Decode.succeed Dish
-        |> Decode.required "title" string
-        |> Decode.required "photo_thumb" string
-        |> Decode.required "url" string
-        |> Decode.optional "weight" int 0
-        |> Decode.optional "energy" int 0
-        |> Decode.optional "carbohydrates" int 0
-        |> Decode.optional "proteins" int 0
-        |> Decode.optional "fats" int 0
-        |> Decode.required "ingredients" (Decode.list string)
